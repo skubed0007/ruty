@@ -1,6 +1,6 @@
 # Ruty Game Engine
 
-Ruty is a simple, 2D game engine written in Rust, built on top of [macroquad](https://github.com/not-fl3/macroquad). It demonstrates a component-based architecture inspired by engines like Unity, making it easy to add, remove, and combine behaviors for game objects.
+Ruty is a simple, educational 2D game engine written in Rust, built on top of [macroquad](https://github.com/not-fl3/macroquad). It demonstrates a component-based architecture inspired by engines like Unity, making it easy to add, remove, and combine behaviors for game objects.
 
 ## Features
 
@@ -10,6 +10,7 @@ Ruty is a simple, 2D game engine written in Rust, built on top of [macroquad](ht
 - **Input Handling**: Move and jump using keyboard input (A/D/Space/Shift).
 - **Rendering**: Draws colored rectangles (Quads) for player and ground.
 - **Screen Utilities**: Helpers for screen size, ground placement, and centering.
+- **Custom font and text rendering** using Macroquad's TTF support
 
 ## Project Structure
 

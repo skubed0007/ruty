@@ -12,17 +12,56 @@ use crate::basics::force::Force;
 use crate::basics::friction::Friction;
 use crate::basics::gravity::Gravity;
 use crate::objects::quad::Quad;
+use crate::objects::{UiText, UiButton, UiElement};
 use crate::utils::screen;
+use crate::utils::font_text::FontText;
 use screen::{get_ground_y, get_screen_width};
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 
 #[macroquad::main("Ruty Game Engine")]
 async fn main() {
+    // Load a custom font (async)
+    let font_text = FontText::load("rsrcs/icon.ttf").await;
+
     // Player cube positioned somewhere near top-left
     let mut cube = Quad::new(200.0, 0.0, 50.0, 50.0, WHITE);
     // Add persistent components: gravity, collision, friction
     cube.add_component(Box::new(Gravity::new(0.5)));
     cube.add_component(Box::new(Collision::new()));
     cube.add_component(Box::new(Friction::new(0.85)));
+
+    // Create a sample UI text object (replaces direct font_text.draw)
+    let mut ui_text = UiText::new(
+        "Ruty Game Engine Demo, a GUI editor shall be added soon",
+        20.0,
+        40.0,
+        40,
+        WHITE,
+        font_text.font.clone(),
+    );
+
+    // Create a sample button to exit
+    let should_exit = Arc::new(Mutex::new(false));
+    let exit_flag = should_exit.clone();
+    let mut exit_button = UiButton::new(
+        "Exit",
+        20.0,
+        90.0,
+        120.0,
+        50.0,
+        32,
+        font_text.font.clone(),
+        macroquad::color::Color::from_rgba(60, 60, 60, 255),
+        macroquad::color::Color::from_rgba(100, 100, 100, 255),
+        macroquad::color::Color::from_rgba(200, 60, 60, 255),
+        WHITE,
+        Some(Box::new(move || {
+            let mut flag = exit_flag.lock().unwrap();
+            *flag = true;
+        })),
+    );
 
     let mut on_ground = false;
 
@@ -37,6 +76,14 @@ async fn main() {
 
         // Draw the ground at the bottom of the screen
         ground.draw();
+
+        // Draw and update UI text and button
+        ui_text.draw();
+        exit_button.update();
+        exit_button.draw();
+        if *should_exit.lock().unwrap() {
+            break;
+        }
 
         // Remove old forces each frame to prevent accumulation
         cube.remove_component::<Force>();
