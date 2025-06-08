@@ -1,29 +1,32 @@
 pub mod basics;
 pub mod objects;
 pub mod utils;
+pub mod test;
 
 use macroquad::color::{BLACK, WHITE};
 use macroquad::input::{KeyCode, is_key_down};
-use macroquad::window::clear_background;
-use macroquad::window::next_frame;
+use macroquad::window::{clear_background, next_frame};
 
 use crate::basics::collision::Collision;
 use crate::basics::force::Force;
 use crate::basics::friction::Friction;
 use crate::basics::gravity::Gravity;
 use crate::objects::quad::Quad;
-use crate::objects::{UiText, UiButton, UiElement};
+use crate::objects::ui::{
+    Theme, UiText, UiButton, UiInput, UiSlider, UiCheckbox, 
+    UiPanel, UiProgressBar, UiDropdown, TextAlignment, UiElement
+};
 use crate::utils::screen;
 use crate::utils::font_text::FontText;
 use screen::{get_ground_y, get_screen_width};
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::sync::{Arc, Mutex};
 
 #[macroquad::main("Ruty Game Engine")]
 async fn main() {
+    crate::test::ui_test::run_ui_test().await;
+
     // Load a custom font (async)
     let font_text = FontText::load("rsrcs/icon.ttf").await;
+    let theme = Theme::default();
 
     // Player cube positioned somewhere near top-left
     let mut cube = Quad::new(200.0, 0.0, 50.0, 50.0, WHITE);
@@ -32,38 +35,155 @@ async fn main() {
     cube.add_component(Box::new(Collision::new()));
     cube.add_component(Box::new(Friction::new(0.85)));
 
-    // Create a sample UI text object (replaces direct font_text.draw)
-    let mut ui_text = UiText::new(
-        "Ruty Game Engine Demo, a GUI editor shall be added soon",
+    // Create UI elements
+    let mut main_panel = UiPanel::new(
         20.0,
-        40.0,
-        40,
-        WHITE,
-        font_text.font.clone(),
+        20.0,
+        300.0,
+        500.0,
+        theme.clone(),
+        Some("Ruty Game Engine".to_string()),
     );
 
-    // Create a sample button to exit
-    let should_exit = Arc::new(Mutex::new(false));
-    let exit_flag = should_exit.clone();
-    let mut exit_button = UiButton::new(
-        "Exit",
-        20.0,
-        90.0,
-        120.0,
-        50.0,
-        32,
+    // Title text
+    let mut title_text = UiText::new(
+        "Welcome to Ruty!",
+        40.0,
+        60.0,
+        24,
+        theme.text,
         font_text.font.clone(),
-        macroquad::color::Color::from_rgba(60, 60, 60, 255),
-        macroquad::color::Color::from_rgba(100, 100, 100, 255),
-        macroquad::color::Color::from_rgba(200, 60, 60, 255),
-        WHITE,
-        Some(Box::new(move || {
-            let mut flag = exit_flag.lock().unwrap();
-            *flag = true;
-        })),
     );
+    title_text.set_alignment(TextAlignment::Center);
+    main_panel.add_element(Box::new(title_text));
+
+    // Description text
+    let mut desc_text = UiText::new(
+        "A modern game engine with beautiful UI",
+        40.0,
+        90.0,
+        16,
+        theme.text,
+        font_text.font.clone(),
+    );
+    desc_text.set_alignment(TextAlignment::Center);
+    main_panel.add_element(Box::new(desc_text));
+
+    // Input field
+    let input = UiInput::new(
+        40.0,
+        130.0,
+        220.0,
+        30.0,
+        16,
+        font_text.font.clone(),
+        theme.clone(),
+        "Enter your name...",
+        Some(Box::new(|text| println!("Input changed: {}", text))),
+    );
+    main_panel.add_element(Box::new(input));
+
+    // Slider
+    let slider = UiSlider::new(
+        40.0,
+        180.0,
+        220.0,
+        20.0,
+        0.0,
+        100.0,
+        50.0,
+        theme.clone(),
+        Some(Box::new(|value| println!("Slider value: {}", value))),
+    );
+    main_panel.add_element(Box::new(slider));
+
+    // Checkbox
+    let checkbox = UiCheckbox::new(
+        40.0,
+        220.0,
+        20.0,
+        false,
+        theme.clone(),
+        Some(Box::new(|checked| println!("Checkbox: {}", checked))),
+    );
+    main_panel.add_element(Box::new(checkbox));
+    let mut checkbox_label = UiText::new(
+        "Enable features",
+        70.0,
+        225.0,
+        16,
+        theme.text,
+        font_text.font.clone(),
+    );
+    main_panel.add_element(Box::new(checkbox_label));
+
+    // Progress bar
+    let progress_bar = UiProgressBar::new(
+        40.0,
+        260.0,
+        220.0,
+        20.0,
+        0.5,
+        theme.clone(),
+    );
+    main_panel.add_element(Box::new(progress_bar));
+
+    // Dropdown
+    let dropdown = UiDropdown::new(
+        40.0,
+        300.0,
+        220.0,
+        30.0,
+        vec!["Option 1".to_string(), "Option 2".to_string(), "Option 3".to_string()],
+        theme.clone(),
+        font_text.font.clone(),
+        16,
+        Some(Box::new(|index| println!("Selected option: {}", index))),
+    );
+    main_panel.add_element(Box::new(dropdown));
+
+    // Buttons
+    let start_button = UiButton::new(
+        "Start Game",
+        40.0,
+        350.0,
+        220.0,
+        40.0,
+        18,
+        font_text.font.clone(),
+        theme.clone(),
+        Some(Box::new(|| println!("Start game clicked!"))),
+    );
+    main_panel.add_element(Box::new(start_button));
+
+    let settings_button = UiButton::new(
+        "Settings",
+        40.0,
+        400.0,
+        220.0,
+        40.0,
+        18,
+        font_text.font.clone(),
+        theme.clone(),
+        Some(Box::new(|| println!("Settings clicked!"))),
+    );
+    main_panel.add_element(Box::new(settings_button));
+
+    let exit_button = UiButton::new(
+        "Exit",
+        40.0,
+        450.0,
+        220.0,
+        40.0,
+        18,
+        font_text.font.clone(),
+        theme.clone(),
+        Some(Box::new(|| std::process::exit(0))),
+    );
+    main_panel.add_element(Box::new(exit_button));
 
     let mut on_ground = false;
+    let mut progress = 0.0;
 
     loop {
         let ground_height = 50.0;
@@ -77,13 +197,9 @@ async fn main() {
         // Draw the ground at the bottom of the screen
         ground.draw();
 
-        // Draw and update UI text and button
-        ui_text.draw();
-        exit_button.update();
-        exit_button.draw();
-        if *should_exit.lock().unwrap() {
-            break;
-        }
+        // Update and draw UI
+        main_panel.update(&theme);
+        main_panel.draw(&theme);
 
         // Remove old forces each frame to prevent accumulation
         cube.remove_component::<Force>();
@@ -132,6 +248,15 @@ async fn main() {
 
         // Draw the cube on the screen
         cube.draw();
+
+        // Update progress bar for demo
+        progress = (progress + 0.001) % 1.0;
+        for element in &mut main_panel.elements {
+            if let Some(progress_bar) = element.as_any_mut().downcast_mut::<UiProgressBar>() {
+                progress_bar.set_progress(progress);
+                break;
+            }
+        }
 
         next_frame().await;
     }
