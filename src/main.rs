@@ -18,11 +18,20 @@ use crate::objects::ui::{
 use crate::test::ui_test::run_ui_example;
 use crate::utils::screen;
 use crate::utils::font_text::FontText;
+use crate::utils::window::WindowBuilder;
 use screen::{get_ground_y, get_screen_width};
 use crate::objects::ui::UiManager;
 
 #[macroquad::main("Ruty Game Engine")]
 async fn main() {
+    // Configure the window
+    WindowBuilder::new()
+        .title("Ruty Game Engine")
+        .size(1280, 720)
+        .target_fps(60)
+        .build()
+        .await;
+
     run_ui_example().await;
     // Run the point physics example
 //    crate::test::point_example::run_point_example().await;
