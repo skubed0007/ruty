@@ -20,3 +20,4 @@ pub mod collision;
 pub mod force;
 pub mod friction;
 pub mod gravity;
+pub mod physics_config;

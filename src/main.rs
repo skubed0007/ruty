@@ -3,18 +3,22 @@ pub mod objects;
 pub mod utils;
 pub mod test;
 
-use macroquad::color::{BLACK, WHITE};
+use macroquad::color::{Color, BLACK, WHITE};
 use macroquad::input::{KeyCode, is_key_down};
-use macroquad::window::{clear_background, next_frame};
+use macroquad::miniquad::window::set_window_size;
+use macroquad::window::{clear_background, next_frame, set_fullscreen};
+use std::sync::{Arc, Mutex};
 
 use crate::basics::collision::Collision;
 use crate::basics::friction::Friction;
 use crate::basics::gravity::Gravity;
+use crate::basics::physics_config::{PhysicsConfig, PhysicsPreset};
 use crate::objects::quad::Quad;
 use crate::objects::ui::{
     Theme, UiText, UiButton, UiInput, UiSlider, UiCheckbox, 
     UiPanel, UiProgressBar, UiDropdown, TextAlignment, UiElement
 };
+use crate::test::gradient_test;
 use crate::test::ui_test::run_ui_example;
 use crate::utils::screen;
 use crate::utils::font_text::FontText;
@@ -24,6 +28,11 @@ use crate::objects::ui::UiManager;
 
 #[macroquad::main("Ruty Game Engine")]
 async fn main() {
+    gradient_test::run_gradient_test().await;
+    // Configure the window
+    set_window_size(1280, 720);
+    set_fullscreen(false);
+
     // Configure the window
     WindowBuilder::new()
         .title("Ruty Game Engine")
@@ -31,6 +40,17 @@ async fn main() {
         .target_fps(60)
         .build()
         .await;
+
+    // Configure physics
+    let physics_config = PhysicsConfig::new()
+        .gravity(9.81)
+        .friction(0.8)
+        .bounce(0.5)
+        .air_resistance(0.1)
+        .add_preset("low_gravity", PhysicsConfig::low_gravity())
+        .add_preset("high_friction", PhysicsConfig::high_friction())
+        .add_preset("bouncy", PhysicsConfig::bouncy())
+        .add_preset("space_like", PhysicsConfig::space_like());
 
     run_ui_example().await;
     // Run the point physics example
@@ -44,9 +64,9 @@ async fn main() {
     // Player cube positioned somewhere near top-left
     let mut cube = Quad::new(200.0, 0.0, 50.0, 50.0, WHITE);
     // Add persistent components: gravity, collision, friction
-    cube.add_component(Box::new(Gravity::new(0.5)));
-    cube.add_component(Box::new(Collision::new(0.5, 0.8)));
-    cube.add_component(Box::new(Friction::new(0.85)));
+    cube.add_component(Box::new(Gravity::new(physics_config.gravity)));
+    cube.add_component(Box::new(Collision::new(physics_config.bounce, physics_config.friction)));
+    cube.add_component(Box::new(Friction::new(physics_config.friction)));
 
     // Create UI elements
     let mut main_panel = UiPanel::new(
@@ -96,19 +116,36 @@ async fn main() {
     );
     main_panel.add_element(Box::new(input));
 
-    // Slider
-    let slider = UiSlider::new(
+    // Physics preset dropdown
+    let physics_presets = vec![
+        "Default".to_string(),
+        "Low Gravity".to_string(),
+        "High Friction".to_string(),
+        "Bouncy".to_string(),
+        "Space-like".to_string(),
+    ];
+    let dropdown = UiDropdown::new(
         40.0,
-        180.0,
+        300.0,
         220.0,
-        20.0,
-        0.0,
-        100.0,
-        50.0,
+        30.0,
+        physics_presets,
         theme.clone(),
-        Some(Box::new(|value| println!("Slider value: {}", value))),
+        font_text.font.clone(),
+        16,
+        Some(Box::new(|index| {
+            // Apply physics preset based on selection
+            let preset = match index {
+                1 => PhysicsConfig::low_gravity(),
+                2 => PhysicsConfig::high_friction(),
+                3 => PhysicsConfig::bouncy(),
+                4 => PhysicsConfig::space_like(),
+                _ => PhysicsPreset::new(9.81, 0.8, 0.5, 0.1),
+            };
+            // TODO: Apply preset to physics system
+        })),
     );
-    main_panel.add_element(Box::new(slider));
+    main_panel.add_element(Box::new(dropdown));
 
     // Checkbox
     let checkbox = UiCheckbox::new(
@@ -140,20 +177,6 @@ async fn main() {
         theme.clone(),
     );
     main_panel.add_element(Box::new(progress_bar));
-
-    // Dropdown
-    let dropdown = UiDropdown::new(
-        40.0,
-        300.0,
-        220.0,
-        30.0,
-        vec!["Option 1".to_string(), "Option 2".to_string(), "Option 3".to_string()],
-        theme.clone(),
-        font_text.font.clone(),
-        16,
-        Some(Box::new(|index| println!("Selected option: {}", index))),
-    );
-    main_panel.add_element(Box::new(dropdown));
 
     // Buttons
     let start_button = UiButton::new(
