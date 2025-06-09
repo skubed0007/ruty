@@ -1,204 +1,189 @@
-use crate::objects::ui::{
-    Theme, UiText, UiButton, UiInput, UiSlider, UiCheckbox, 
-    UiPanel, UiProgressBar, UiDropdown, TextAlignment, UiElement
-};
-use crate::utils::font_text::FontText;
-use macroquad::color::BLACK;
-use macroquad::input::{is_mouse_button_pressed, mouse_position, MouseButton};
-use macroquad::window::{clear_background, next_frame};
+use macroquad::prelude::*;
+use crate::objects::ui::*;
+use std::path::Path;
 
-pub async fn run_ui_test() {
-    // Load a custom font (async)
-    let font_text = FontText::load("rsrcs/icon.ttf").await;
-    let theme = Theme::default();
+pub async fn run_ui_example() {
+    // Load custom font
+    let font = load_ttf_font("rsrcs/font.ttf").await.unwrap();
+    
+    // Create UI manager
+    let mut ui_manager = UiManager::new();
+    
+    // Create modern theme
+    let modern_theme = Theme {
+        primary: Color::from_rgba(41, 128, 185, 255),    // Blue
+        secondary: Color::from_rgba(52, 73, 94, 255),    // Dark blue
+        accent: Color::from_rgba(231, 76, 60, 255),      // Red
+        background: Color::from_rgba(44, 62, 80, 255),   // Darker blue
+        text: Color::from_rgba(236, 240, 241, 255),      // Light gray
+        error: Color::from_rgba(231, 76, 60, 255),       // Red
+        success: Color::from_rgba(46, 204, 113, 255),    // Green
+        border_radius: 8.0,
+        padding: 12.0,
+        animation_speed: 0.2,
+    };
 
-    // Create UI elements
+    // Create main panel
     let mut main_panel = UiPanel::new(
-        20.0,
-        20.0,
-        300.0,
-        600.0, // Increased height to accommodate all elements
-        theme.clone(),
-        Some("UI Test Panel".to_string()),
-    );
-
-    // Title text
-    let mut title_text = UiText::new(
-        "UI Components Test",
-        40.0,
-        60.0,
-        24,
-        theme.text,
-        font_text.font.clone(),
-    );
-    title_text.set_alignment(TextAlignment::Center);
-    main_panel.add_element(Box::new(title_text));
-
-    // Description text
-    let mut desc_text = UiText::new(
-        "Testing all UI components",
-        40.0,
-        90.0,
-        16,
-        theme.text,
-        font_text.font.clone(),
-    );
-    desc_text.set_alignment(TextAlignment::Center);
-    main_panel.add_element(Box::new(desc_text));
-
-    // Input field
-    let input = UiInput::new(
-        40.0,
-        130.0,
-        220.0,
-        30.0,
-        16,
-        font_text.font.clone(),
-        theme.clone(),
-        "Type something...",
-        Some(Box::new(|text| println!("Input changed: {}", text))),
-    );
-    main_panel.add_element(Box::new(input));
-
-    // Slider
-    let slider = UiSlider::new(
-        40.0,
-        180.0,
-        220.0,
-        20.0,
-        0.0,
-        100.0,
         50.0,
-        theme.clone(),
-        Some(Box::new(|value| println!("Slider value: {}", value))),
+        50.0,
+        800.0,
+        600.0,
+        modern_theme.clone(),
+        Some("Modern UI Example".to_string()),
     );
-    main_panel.add_element(Box::new(slider));
 
-    // Checkbox
-    let checkbox = UiCheckbox::new(
-        40.0,
-        220.0,
-        20.0,
-        false,
-        theme.clone(),
-        Some(Box::new(|checked| println!("Checkbox: {}", checked))),
+    // Create header text
+    let header = UiText::new(
+        "Welcome to Ruty UI",
+        100.0,
+        100.0,
+        32,
+        modern_theme.text,
+        font.clone(),
     );
-    main_panel.add_element(Box::new(checkbox));
-    let mut checkbox_label = UiText::new(
-        "Test checkbox",
-        70.0,
-        225.0,
-        16,
-        theme.text,
-        font_text.font.clone(),
-    );
-    main_panel.add_element(Box::new(checkbox_label));
+    main_panel.add_element(Box::new(header));
 
-    // Progress bar
-    let progress_bar = UiProgressBar::new(
-        40.0,
-        260.0,
-        220.0,
-        20.0,
-        0.5,
-        theme.clone(),
-    );
-    main_panel.add_element(Box::new(progress_bar));
-
-    // Dropdown
+    // Create dropdown menu
     let dropdown = UiDropdown::new(
+        100.0,
+        150.0,
+        200.0,
         40.0,
-        300.0,
-        220.0,
-        30.0,
-        vec!["Test Option 1".to_string(), "Test Option 2".to_string(), "Test Option 3".to_string()],
-        theme.clone(),
-        font_text.font.clone(),
-        16,
-        Some(Box::new(|index| println!("Selected option: {}", index))),
+        vec![
+            "Option 1".to_string(),
+            "Option 2".to_string(),
+            "Option 3".to_string(),
+            "Option 4".to_string(),
+        ],
+        modern_theme.clone(),
+        font.clone(),
+        18,
+        Some(Box::new(|index| {
+            println!("Selected option: {}", index);
+        })),
     );
     main_panel.add_element(Box::new(dropdown));
 
-    // Buttons
-    let test_button = UiButton::new(
-        "Test Button",
-        40.0,
-        350.0,
-        220.0,
-        40.0,
-        18,
-        font_text.font.clone(),
-        theme.clone(),
-        Some(Box::new(|| println!("Test button clicked!"))),
-    );
-    main_panel.add_element(Box::new(test_button));
-
-    let exit_button = UiButton::new(
-        "Exit Test",
-        40.0,
-        400.0,
-        220.0,
+    // Create buttons
+    let primary_button = UiButton::new(
+        "Primary Action",
+        100.0,
+        210.0,
+        200.0,
         40.0,
         18,
-        font_text.font.clone(),
-        theme.clone(),
-        Some(Box::new(|| std::process::exit(0))),
+        font.clone(),
+        modern_theme.clone(),
+        Some(Box::new(|| {
+            println!("Primary button clicked!");
+        })),
     );
-    main_panel.add_element(Box::new(exit_button));
+    main_panel.add_element(Box::new(primary_button));
 
+    let secondary_button = UiButton::new(
+        "Secondary Action",
+        100.0,
+        270.0,
+        200.0,
+        40.0,
+        18,
+        font.clone(),
+        modern_theme.clone(),
+        Some(Box::new(|| {
+            println!("Secondary button clicked!");
+        })),
+    );
+    main_panel.add_element(Box::new(secondary_button));
+
+    // Create input field
+    let input = UiInput::new(
+        100.0,
+        330.0,
+        200.0,
+        40.0,
+        18,
+        font.clone(),
+        modern_theme.clone(),
+        "Enter text here...",
+        Some(Box::new(|text| {
+            println!("Input changed: {}", text);
+        })),
+    );
+    main_panel.add_element(Box::new(input));
+
+    // Create slider
+    let slider = UiSlider::new(
+        100.0,
+        390.0,
+        200.0,
+        40.0,
+        0.0,
+        100.0,
+        50.0,
+        modern_theme.clone(),
+        Some(Box::new(|value| {
+            println!("Slider value: {}", value);
+        })),
+    );
+    main_panel.add_element(Box::new(slider));
+
+    // Create checkbox
+    let checkbox = UiCheckbox::new(
+        100.0,
+        450.0,
+        24.0,
+        false,
+        modern_theme.clone(),
+        Some(Box::new(|checked| {
+            println!("Checkbox state: {}", checked);
+        })),
+    );
+    main_panel.add_element(Box::new(checkbox));
+
+    // Create progress bar
+    let mut progress_bar = UiProgressBar::new(
+        100.0,
+        500.0,
+        200.0,
+        20.0,
+        0.0,
+        modern_theme.clone(),
+    );
+    main_panel.add_element(Box::new(progress_bar));
+
+    // Add main panel to UI manager
+    ui_manager.add_element(Box::new(main_panel));
+
+    // Main loop
     let mut progress = 0.0;
-    let mut last_clicked_element: Option<usize> = None;
-
     loop {
-        clear_background(BLACK);
+        clear_background(Color::from_rgba(52, 73, 94, 255));
 
-        // Handle click outside behavior
-        if is_mouse_button_pressed(MouseButton::Left) {
-            let (mouse_x, mouse_y) = mouse_position();
-            let mut clicked_inside = false;
-            
-            // Check if click is inside any interactive element
-            for (i, element) in main_panel.elements.iter().enumerate() {
-                let bounds = element.get_bounds();
-                if mouse_x >= bounds.0 && mouse_x <= bounds.0 + bounds.2 &&
-                   mouse_y >= bounds.1 && mouse_y <= bounds.1 + bounds.3 {
-                    clicked_inside = true;
-                    last_clicked_element = Some(i);
-                    break;
+        // Update progress bar
+        progress = (progress + 0.01) % 1.0;
+        if let Some(element) = ui_manager.get_element_mut(0) {
+            if let Some(panel) = element.as_any_mut().downcast_mut::<UiPanel>() {
+                if let Some(progress_bar) = panel.elements.last_mut() {
+                    if let Some(progress_bar) = progress_bar.as_any_mut().downcast_mut::<UiProgressBar>() {
+                        progress_bar.set_progress(progress);
+                    }
                 }
             }
-
-            // If clicked outside, reset last clicked element
-            if !clicked_inside {
-                last_clicked_element = None;
-            }
         }
 
-        // Update and draw UI elements in correct order
-        main_panel.update(&theme);
-        
-        // Draw non-interactive elements first
-        for (i, element) in main_panel.elements.iter().enumerate() {
-            if last_clicked_element != Some(i) {
-                element.draw(&theme);
-            }
-        }
+        // Update and draw UI
+        ui_manager.update();
+        ui_manager.draw();
 
-        // Draw the last clicked element on top
-        if let Some(index) = last_clicked_element {
-            if let Some(element) = main_panel.elements.get(index) {
-                element.draw(&theme);
-            }
-        }
-
-        // Update progress bar for demo
-        progress = (progress + 0.001) % 1.0;
-        for element in &mut main_panel.elements {
-            if let Some(progress_bar) = element.as_any_mut().downcast_mut::<UiProgressBar>() {
-                progress_bar.set_progress(progress);
-                break;
-            }
-        }
+        // Draw FPS
+        draw_text(
+            &format!("FPS: {}", get_fps()),
+            10.0,
+            20.0,
+            20.0,
+            WHITE,
+        );
 
         next_frame().await;
     }

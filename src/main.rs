@@ -15,12 +15,15 @@ use crate::objects::ui::{
     Theme, UiText, UiButton, UiInput, UiSlider, UiCheckbox, 
     UiPanel, UiProgressBar, UiDropdown, TextAlignment, UiElement
 };
+use crate::test::ui_test::run_ui_example;
 use crate::utils::screen;
 use crate::utils::font_text::FontText;
 use screen::{get_ground_y, get_screen_width};
+use crate::objects::ui::UiManager;
 
 #[macroquad::main("Ruty Game Engine")]
 async fn main() {
+    run_ui_example().await;
     // Run the point physics example
 //    crate::test::point_example::run_point_example().await;
 
@@ -185,6 +188,8 @@ async fn main() {
 
     let mut on_ground = false;
     let mut progress = 0.0;
+    let mut ui_manager = UiManager::new();
+    let panel_index = ui_manager.add_element(Box::new(main_panel));
 
     loop {
         let ground_height = 50.0;
@@ -199,8 +204,21 @@ async fn main() {
         ground.draw();
 
         // Update and draw UI
-        main_panel.update(&theme);
-        main_panel.draw(&theme);
+        ui_manager.update();
+        ui_manager.draw();
+
+        // Update progress bar
+        progress = (progress + 0.001) % 1.0;
+        if let Some(element) = ui_manager.get_element_mut(panel_index) {
+            if let Some(panel) = element.as_any_mut().downcast_mut::<UiPanel>() {
+                for element in &mut panel.elements {
+                    if let Some(progress_bar) = element.as_any_mut().downcast_mut::<UiProgressBar>() {
+                        progress_bar.set_progress(progress);
+                        break;
+                    }
+                }
+            }
+        }
 
         // Update and draw the player cube
         cube.update_components();
@@ -226,15 +244,6 @@ async fn main() {
             cube.position.1 = ground_y - cube.size.1;
             cube.velocity_y = 0.0;
             on_ground = true;
-        }
-
-        // Update progress bar
-        progress = (progress + 0.001) % 1.0;
-        for element in &mut main_panel.elements {
-            if let Some(progress_bar) = element.as_any_mut().downcast_mut::<UiProgressBar>() {
-                progress_bar.set_progress(progress);
-                break;
-            }
         }
 
         next_frame().await;
