@@ -8,7 +8,6 @@ use macroquad::input::{KeyCode, is_key_down};
 use macroquad::window::{clear_background, next_frame};
 
 use crate::basics::collision::Collision;
-use crate::basics::force::Force;
 use crate::basics::friction::Friction;
 use crate::basics::gravity::Gravity;
 use crate::objects::quad::Quad;
@@ -22,8 +21,10 @@ use screen::{get_ground_y, get_screen_width};
 
 #[macroquad::main("Ruty Game Engine")]
 async fn main() {
-    crate::test::ui_test::run_ui_test().await;
+    // Run the point physics example
+    crate::test::point_example::run_point_example().await;
 
+    // The rest of the main function...
     // Load a custom font (async)
     let font_text = FontText::load("rsrcs/icon.ttf").await;
     let theme = Theme::default();
@@ -32,7 +33,7 @@ async fn main() {
     let mut cube = Quad::new(200.0, 0.0, 50.0, 50.0, WHITE);
     // Add persistent components: gravity, collision, friction
     cube.add_component(Box::new(Gravity::new(0.5)));
-    cube.add_component(Box::new(Collision::new()));
+    cube.add_component(Box::new(Collision::new(0.5, 0.8)));
     cube.add_component(Box::new(Friction::new(0.85)));
 
     // Create UI elements
@@ -201,55 +202,33 @@ async fn main() {
         main_panel.update(&theme);
         main_panel.draw(&theme);
 
-        // Remove old forces each frame to prevent accumulation
-        cube.remove_component::<Force>();
+        // Update and draw the player cube
+        cube.update_components();
+        cube.draw();
 
-        // Apply input-based forces independently (allows moving + jumping simultaneously)
-        // Check if Shift is held for sprinting
-        let sprint_multiplier =
-            if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
-                2.0
-            } else {
-                1.0
-            };
-
-        if is_key_down(KeyCode::D) {
-            cube.add_component(Box::new(Force::new(1.0 * sprint_multiplier, 0.0)));
-        }
-        if is_key_down(KeyCode::A) {
-            cube.add_component(Box::new(Force::new(-1.0 * sprint_multiplier, 0.0)));
-        }
-        if is_key_down(KeyCode::Space) && on_ground {
-            cube.add_component(Box::new(Force::new(0.0, -10.0))); // jump force stays same
-        }
-
-        // Update all components and apply their effects on cube
-        let mut components = std::mem::take(&mut cube.components);
-        for comp in components.iter_mut() {
-            comp.update(&mut cube);
-        }
-
-        // Move cube according to velocity calculated by components
-        cube.position.0 += cube.velocity_x;
-        cube.position.1 += cube.velocity_y;
-
-        // Collision detection and resolution
-        if cube.is_colliding_with(&ground) {
-            on_ground = true;
-            for comp in components.iter_mut() {
-                comp.on_collide(&mut cube, &ground);
-            }
+        // Handle player movement
+        if is_key_down(KeyCode::Left) {
+            cube.velocity_x = -5.0;
+        } else if is_key_down(KeyCode::Right) {
+            cube.velocity_x = 5.0;
         } else {
+            cube.velocity_x = 0.0;
+        }
+
+        // Handle jumping
+        if is_key_down(KeyCode::Space) && on_ground {
+            cube.velocity_y = -10.0;
             on_ground = false;
         }
 
-        // Restore updated components back to cube
-        cube.components = components;
+        // Check for ground collision
+        if cube.position.1 + cube.size.1 >= ground_y {
+            cube.position.1 = ground_y - cube.size.1;
+            cube.velocity_y = 0.0;
+            on_ground = true;
+        }
 
-        // Draw the cube on the screen
-        cube.draw();
-
-        // Update progress bar for demo
+        // Update progress bar
         progress = (progress + 0.001) % 1.0;
         for element in &mut main_panel.elements {
             if let Some(progress_bar) = element.as_any_mut().downcast_mut::<UiProgressBar>() {

@@ -1,24 +1,10 @@
-use std::any::Any;
+use crate::basics::Component;
+use crate::objects::point::Point;
+use crate::objects::quad::Quad;
 
-use crate::{basics::Component, objects::quad::Quad};
-
-/// A component that applies friction to reduce the horizontal velocity of a Quad.
-///
-/// This simulates a frictional force slowing down horizontal movement over time.
-/// The friction coefficient should be a value between 0.0 and 1.0, where values
-/// closer to 0 cause more rapid slowing.
-///
-/// # Fields
-///
-/// - `coefficient`: The multiplier applied to horizontal velocity every update.
-///
-/// # Example
-///
-/// ```rust
-/// let friction = Friction::new(0.85);
-/// quad.add_component(Box::new(friction));
-/// ```
+/// Component that applies friction to an object's movement
 pub struct Friction {
+    /// The friction coefficient (0.0 to 1.0)
     pub coefficient: f32,
 }
 
@@ -35,25 +21,34 @@ impl Friction {
     }
 }
 
-impl Component for Friction {
-    /// Updates the Quad’s horizontal velocity by applying friction.
+impl Component<Point> for Friction {
+    /// Updates the Point's velocity by applying friction.
     ///
-    /// Multiplies `velocity_x` by the friction coefficient each frame,
+    /// Multiplies `velocity.0` and `velocity.1` by the friction coefficient each frame,
     /// gradually reducing speed until it stops when below a small threshold.
-    fn update(&mut self, quad: &mut Quad) {
-        quad.velocity_x *= self.coefficient;
-        if quad.velocity_x.abs() < 0.01 {
-            quad.velocity_x = 0.0;
+    fn update(&mut self, point: &mut Point) {
+        if !point.fixed {
+            point.velocity.0 *= self.coefficient;
+            point.velocity.1 *= self.coefficient;
         }
     }
 
-    /// Allows downcasting to retrieve a reference to the concrete type.
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn on_collide(&mut self, _me: &mut Point, _other: &mut Point) {
+        // No collision handling needed for friction
+    }
+}
+
+impl Component<Quad> for Friction {
+    /// Updates the Quad's horizontal and vertical velocities by applying friction.
+    ///
+    /// Multiplies `velocity_x` and `velocity_y` by the friction coefficient each frame,
+    /// gradually reducing speed until it stops when below a small threshold.
+    fn update(&mut self, quad: &mut Quad) {
+        quad.velocity_x *= self.coefficient;
+        quad.velocity_y *= self.coefficient;
     }
 
-    /// Allows downcasting to retrieve a mutable reference to the concrete type.
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
+    fn on_collide(&mut self, _me: &mut Quad, _other: &mut Quad) {
+        // No collision handling needed for friction
     }
 }

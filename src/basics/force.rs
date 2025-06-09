@@ -1,10 +1,11 @@
-use std::any::Any;
-
-use crate::{basics::Component, objects::quad::Quad};
+use crate::basics::Component;
+use crate::objects::point::Point;
+use crate::objects::quad::Quad;
+use macroquad::prelude::*;
 
 /// A component representing a force applied to a Quad, affecting its velocity.
 ///
-/// This component adds a force vector `(x, y)` to the Quad’s velocity each update.
+/// This component adds a force vector `(x, y)` to the Quad's velocity each update.
 /// It supports both *decaying* (one-time) forces and *permanent* forces that persist.
 ///
 /// # Fields
@@ -26,9 +27,8 @@ use crate::{basics::Component, objects::quad::Quad};
 /// let wind_force = Force::permanent(1.0, 0.0);
 /// ```
 pub struct Force {
-    pub x: f32,
-    pub y: f32,
-    pub decay: bool, // Whether force resets each update (one-time) or stays constant
+    /// The force vector to apply
+    pub force: Vec2,
 }
 
 impl Force {
@@ -42,8 +42,8 @@ impl Force {
     ///
     /// # Returns
     /// A `Force` instance with `decay` set to `true`.
-    pub fn new(x: f32, y: f32) -> Self {
-        Self { x, y, decay: true }
+    pub fn new(force: Vec2) -> Self {
+        Self { force }
     }
 
     /// Creates a new permanent force with the given x and y components.
@@ -57,12 +57,32 @@ impl Force {
     /// # Returns
     /// A `Force` instance with `decay` set to `false`.
     pub fn permanent(x: f32, y: f32) -> Self {
-        Self { x, y, decay: false }
+        Self { force: Vec2::new(x, y) }
     }
 }
 
-impl Component for Force {
-    /// Applies the force to the Quad’s velocity each update.
+impl Component<Point> for Force {
+    /// Applies the force to the Point's velocity each update.
+    ///
+    /// Adds `x` and `y` components to `velocity.0` and `velocity.1` respectively.
+    /// If the force is set to decay, it resets the force to zero after applying.
+    ///
+    /// # Parameters
+    /// - `point`: The Point instance to update.
+    fn update(&mut self, point: &mut Point) {
+        if !point.fixed {
+            point.velocity.0 += self.force.x;
+            point.velocity.1 += self.force.y;
+        }
+    }
+
+    fn on_collide(&mut self, _me: &mut Point, _other: &mut Point) {
+        // No collision handling needed for force
+    }
+}
+
+impl Component<Quad> for Force {
+    /// Applies the force to the Quad's velocity each update.
     ///
     /// Adds `x` and `y` components to `velocity_x` and `velocity_y` respectively.
     /// If the force is set to decay, it resets the force to zero after applying.
@@ -70,21 +90,11 @@ impl Component for Force {
     /// # Parameters
     /// - `quad`: The Quad instance to update.
     fn update(&mut self, quad: &mut Quad) {
-        quad.velocity_x += self.x;
-        quad.velocity_y += self.y;
-        if self.decay {
-            self.x = 0.0;
-            self.y = 0.0;
-        }
+        quad.velocity_x += self.force.x;
+        quad.velocity_y += self.force.y;
     }
 
-    /// Enables downcasting to access the concrete `Force` type.
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    /// Enables mutable downcasting to access and modify the concrete `Force` type.
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
+    fn on_collide(&mut self, _me: &mut Quad, _other: &mut Quad) {
+        // No collision handling needed for force
     }
 }

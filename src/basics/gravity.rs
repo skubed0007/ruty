@@ -1,54 +1,52 @@
-use std::any::Any;
+use crate::basics::Component;
+use crate::objects::point::Point;
+use crate::objects::quad::Quad;
 
-use crate::{basics::Component, objects::quad::Quad};
-
-/// A component that applies a constant downward force (gravity) to a Quad.
-///
-/// This component adds gravity by increasing the vertical velocity (`velocity_y`)
-/// of the `Quad` every frame by the specified force value.
-///
-/// # Fields
-///
-/// - `force`: The acceleration applied downwards each update (e.g., 0.5).
-///
-/// # Example
-///
-/// ```rust
-/// let gravity = Gravity::new(0.5);
-/// quad.add_component(Box::new(gravity));
-/// ```
+/// Component that applies gravity to an object
 pub struct Gravity {
-    pub force: f32,
+    /// The strength of gravity (positive values pull downward)
+    pub strength: f32,
 }
 
 impl Gravity {
-    /// Creates a new Gravity component with the specified force.
+    /// Creates a new Gravity component with the specified strength.
     ///
     /// # Parameters
-    /// - `force`: The gravity acceleration to apply per update frame.
+    /// - `strength`: The gravity acceleration to apply per update frame.
     ///
     /// # Returns
     /// A new `Gravity` instance.
-    pub fn new(force: f32) -> Self {
-        Self { force }
+    pub fn new(strength: f32) -> Self {
+        Self { strength }
     }
 }
 
-impl Component for Gravity {
+impl Component<Point> for Gravity {
+    /// Updates the Point's velocity by adding the gravity force to its vertical velocity.
+    ///
+    /// This simulates gravity pulling the Point downward every frame.
+    fn update(&mut self, point: &mut Point) {
+        if !point.fixed {
+            point.velocity.1 += self.strength;
+        }
+    }
+
+    /// No collision handling needed for gravity
+    fn on_collide(&mut self, _me: &mut Point, _other: &mut Point) {
+        // No collision handling needed for gravity
+    }
+}
+
+impl Component<Quad> for Gravity {
     /// Updates the Quad's velocity by adding the gravity force to its vertical velocity.
     ///
     /// This simulates gravity pulling the Quad downward every frame.
     fn update(&mut self, quad: &mut Quad) {
-        quad.velocity_y += self.force;
+        quad.velocity_y += self.strength;
     }
 
-    /// Allows downcasting to retrieve a reference to the concrete type.
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    /// Allows downcasting to retrieve a mutable reference to the concrete type.
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
+    /// No collision handling needed for gravity
+    fn on_collide(&mut self, _me: &mut Quad, _other: &mut Quad) {
+        // No collision handling needed for gravity
     }
 }

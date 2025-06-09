@@ -32,7 +32,7 @@ pub struct Quad {
     pub color: Color,
     pub velocity_x: f32,
     pub velocity_y: f32,
-    pub components: Vec<Box<dyn Component>>,
+    pub components: Vec<Box<dyn Component<Quad>>>,
 }
 
 impl Quad {
@@ -79,7 +79,7 @@ impl Quad {
     ///
     /// # Parameters
     /// - `comp`: A boxed component to add.
-    pub fn add_component(&mut self, comp: Box<dyn Component>) {
+    pub fn add_component(&mut self, comp: Box<dyn Component<Quad>>) {
         self.components.push(comp);
     }
 
@@ -126,7 +126,7 @@ impl Quad {
     /// - `T`: The component type to remove.
     pub fn remove_component<T: 'static>(&mut self) {
         self.components.retain(|comp| {
-            comp.as_any().type_id() != std::any::TypeId::of::<T>()
+            std::any::TypeId::of::<T>() != std::any::TypeId::of::<Box<dyn Component<Quad>>>()
         });
     }
 }

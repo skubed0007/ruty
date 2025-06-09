@@ -1,13 +1,21 @@
-use std::any::Any;
-
+use crate::objects::point::Point;
 use crate::objects::quad::Quad;
 
-pub trait Component: Any {
-    fn update(&mut self, quad: &mut Quad);
-    fn on_collide(&mut self, _me: &mut Quad, _other: &Quad) {}
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
+/// Trait for components that can be attached to objects
+pub trait Component<T> {
+    /// Update the component's state
+    fn update(&mut self, object: &mut T);
+    
+    /// Handle collision with another object
+    fn on_collide(&mut self, me: &mut T, other: &mut T);
 }
+
+/// Trait for components that can be drawn
+pub trait Drawable {
+    /// Draw the component
+    fn draw(&self);
+}
+
 pub mod collision;
 pub mod force;
 pub mod friction;
