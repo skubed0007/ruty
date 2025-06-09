@@ -22,7 +22,7 @@ use screen::{get_ground_y, get_screen_width};
 #[macroquad::main("Ruty Game Engine")]
 async fn main() {
     // Run the point physics example
-    crate::test::point_example::run_point_example().await;
+//    crate::test::point_example::run_point_example().await;
 
     // The rest of the main function...
     // Load a custom font (async)
